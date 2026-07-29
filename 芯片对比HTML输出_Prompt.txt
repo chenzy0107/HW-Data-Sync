@@ -10,6 +10,11 @@
 4. 除 ECharts CDN 外不请求任何在线资源（无在线字体/图片/SDK）。禁止 `eval`、`Function`、`innerHTML` 拼接用户输入。
 5. 所有 ECharts/Canvas 操作 try-catch；兼容近 2 年主流浏览器。
 6. **输出的 HTML 代码内禁止任何解释性内容**：不得包含注释（含 HTML `<!-- -->`、CSS `/* */`、JS `//` 与 `/* */`）、不得有说明性文字、不得在代码中遗留 TODO/占位说明。函数与变量命名应自解释，代替注释。代码块之外（HTML 文件首尾外）可有简短使用说明，但**代码内部必须干净零注释**。注：第六章要求的"📖 使用说明面板"是**页面可见的 DOM 元素**（供最终用户阅读），不属于代码注释，不违反本条。
+7. **思考阶段（thinking / reasoning）输出约束——禁止在思考中产出代码**：
+   - 在给出最终 HTML 之前，思考只允许用简短中文要点规划，且仅限"决策类"内容：`pickCharts` 选哪 3 个图及判定依据、布局与网格策略、综合分/归一化的边界处理、空状态/截断/离线降级的判定顺序、需特别对齐的规格点。
+   - 思考中**严禁编写、推演、重复或粘贴任何代码片段**（HTML/CSS/JS、函数体、`CONFIG` 对象均不可）。第二、六章给出的函数示例是**可直接采用的最终实现，思考时无需复现或改写**。
+   - 完整代码仅在最终输出阶段一次性产出，不分块、不中途演示。
+   - 思考要点**不超过 15 条，每条一行，纯文字**。
 
 ---
 
@@ -22,6 +27,7 @@
 ## 二、数据模型
 
 > 维度用**英文 key** + 中文 `name`；实体 `scores` 以维度 key 为字段名。默认用下方手机示例（开箱即见效果），替换数据见第六章。
+> 注：下方及第六章给出的代码均为**可直接采用的最终实现，思考阶段无需复现或改写**，仅在最终输出中照此落地即可。
 
 ```js
 const CONFIG = {
@@ -269,7 +275,7 @@ function computeWeighted(e, activeDims, weights, pen){
 
 ## 八、输出要求
 
-输出**一个完整 HTML 文件**（`<!DOCTYPE html>`→`</html>`，代码外可附简短使用说明），**代码内零注释、零解释性内容**（详见硬性约束 #6），关键函数单独定义并自解释命名：`safeScore`、`normalizeScore`、`computeWeighted`、`buildReason`、`buildInsights`、`pickCharts`、`renderAll`、`applyStyle`、`getChart`/`chartRegistry`、`OfflineRenderer`、`loadScriptWithFallback`、`retryLoad`、`persistState`、`restoreState`。`CONFIG` 放最上方，默认用第二章手机示例。
+先以**不超过 15 条要点**完成思考规划（**不含任何代码**，见硬性约束 #7），再一次性输出**一个完整 HTML 文件**（`<!DOCTYPE html>`→`</html>`，代码外可附简短使用说明），**代码内零注释、零解释性内容**（详见硬性约束 #6），关键函数单独定义并自解释命名：`safeScore`、`normalizeScore`、`computeWeighted`、`buildReason`、`buildInsights`、`pickCharts`、`renderAll`、`applyStyle`、`getChart`/`chartRegistry`、`OfflineRenderer`、`loadScriptWithFallback`、`retryLoad`、`persistState`、`restoreState`。`CONFIG` 放最上方，默认用第二章手机示例。
 
 ---
 

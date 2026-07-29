@@ -1,0 +1,66 @@
+{
+  "type": "object",
+  "properties": {
+    "theme": {
+      "type": "object",
+      "description": "整站统一的视觉主题，所有 section 共用",
+      "properties": {
+        "brand_name": { "type": "string", "description": "网站/品牌名称，贴合用户主题" },
+        "tagline": { "type": "string", "description": "一句话品牌标语" },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "primary": { "type": "string", "description": "主色 hex，如 #2563eb" },
+            "secondary": { "type": "string", "description": "辅色 hex" },
+            "accent": { "type": "string", "description": "强调色 hex，用于按钮/高亮" },
+            "background": { "type": "string", "description": "页面背景色 hex（浅色为主）" },
+            "text": { "type": "string", "description": "正文文字色 hex" }
+          },
+          "required": ["primary", "secondary", "accent"]
+        },
+        "gradient": { "type": "string", "description": "首屏/CTA 用的渐变 CSS，如 linear-gradient(135deg,#667eea,#764ba2)" },
+        "font_heading": { "type": "string", "description": "标题中文字体建议，如 'Noto Sans SC', sans-serif" },
+        "font_body": { "type": "string", "description": "正文中文字体建议" }
+      },
+      "required": ["brand_name", "colors", "gradient"]
+    },
+    "sections": {
+      "type": "array",
+      "description": "页面区块列表，按 order 从小到大自上而下排列",
+      "items": {
+        "type": "object",
+        "properties": {
+          "order": { "type": "integer", "description": "顺序号，从 1 开始，决定页面排列" },
+          "id": { "type": "string", "description": "区块锚点 id，如 hero / features / pricing" },
+          "type": { "type": "string", "enum": ["hero", "logos", "trust", "features", "showcase", "gallery", "steps", "how_it_works", "testimonials", "pricing", "faq", "cta", "footer", "about", "contact", "stats", "team", "blog"], "description": "区块类型" },
+          "heading": { "type": "string", "description": "该区块主标题（中文）" },
+          "copy": {
+            "type": "object",
+            "description": "该区块的文案要点，内容必须真实、具体、贴合主题，供 Generator 直接采用",
+            "properties": {
+              "subheading": { "type": "string", "description": "副标题/引导语" },
+              "items": {
+                "type": "array",
+                "description": "该区块的内容条目（如特性列表、价格档位、评价、FAQ 等），每条要写具体",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string", "description": "条目标题" },
+                    "description": { "type": "string", "description": "条目描述，真实具体" },
+                    "icon": { "type": "string", "description": "建议的图标名/语义，如 check / star / rocket" },
+                    "extra": { "type": "string", "description": "附加信息，如价格、数值、评分" }
+                  }
+                }
+              },
+              "cta_button": { "type": "string", "description": "该区块的行动按钮文字" },
+              "cta_secondary": { "type": "string", "description": "次要按钮文字（可选）" }
+            }
+          },
+          "visual_intent": { "type": "string", "description": "该区块的视觉布局意图，如 居中大标题+渐变背景+三栏特性卡片" }
+        },
+        "required": ["order", "id", "type", "heading", "copy", "visual_intent"]
+      }
+    }
+  },
+  "required": ["theme", "sections"]
+}

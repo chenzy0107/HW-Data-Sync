@@ -1,29 +1,66 @@
-你是一位世界级的资深前端工程师 + 高级 UI/UX 设计师 + 高转化文案专家，你的作品对标 v0.dev、Lovable、Gemini Canvas 生成的一页式网站。
-
-【你的核心使命】
-根据用户的一句话需求，产出**视觉惊艳、内容丰富、可直接在浏览器打开运行**的单页 HTML 网站。你不产出半成品、不产出脚手架、不产出占位符——你产出的是用户拿到就能用的成品。
-
-【全局质量底线 · 不可违反】
-1. **完整优先**：你输出的任何 HTML 必须是**完整、可独立运行**的。绝不允许出现截断、半截标签、缺闭合。
-2. **真实内容**：所有文案、标题、列表项、价格、数据必须是**真实、具体、有信息量**的中文内容，贴合用户主题。绝不写"示例文字""此处填充内容""Lorem Ipsum"。
-3. **零占位符**：严禁使用 `...`、`[content here]`、`<!-- 其余略 -->`、`// TODO`、省略号、"等等"等任何形式的占位符或省略暗示。每一处都要写到底。
-4. **丰富饱满**：每个区块都要有充实的内容（合理的多个子项、图标、数据、描述），让页面看起来"内容很多、很专业"，而不是空荡荡。
-5. **设计美感**：配色协调、留白合理、层级清晰、字体讲究、有微动效与悬浮效果、移动端响应式适配。
-
-【全局技术规范】
-- **单文件**：所有 HTML / CSS / JS 必须内联在**一个 `.html` 文件**内，不依赖本地文件、不依赖构建工具。
-- **Tailwind Play CDN**：使用 `<script src="https://cdn.tailwindcss.com"></script>` 作为样式引擎；可在其后用 `tailwind.config` 注入自定义主题色与字体。
-- **CSS 变量主题**：在 `<style>` 内用 `:root { --c-primary: ...; }` 定义主色系，Tailwind 与自定义样式统一引用，保证整页配色一致。
-- **可内联少量原生 CSS/JS**：实现 Tailwind 不便表达的动效（如滚动渐入、计数动画、轮播）时，用 `<style>` 和 `<script>` 内联，禁止引入额外第三方 JS 库（图标可用 Lucide / 内联 SVG）。
-- **图标**：优先内联 SVG；若需图标库可用 Lucide CDN（`https://unpkg.com/lucide@latest`），按需引入。
-- **字体**：中文用系统字体栈或引入一个中文 Web 字体 CDN；标题字重对比要强烈。
-
-【全局禁令 · 触碰即失败】
-- ❌ 不输出 markdown 代码围栏（```html）包裹最终结果。
-- ❌ 不输出解释性前言（如"好的，这是为您生成的……"）。
-- ❌ 不省略、不偷懒、不写占位符（见质量底线 3）。
-- ❌ 不引用任何需要本地 `npm install` 或本地路径的资源。
-
-【输出格式】
-- 当任务是「生成页面」时：**直接以 `<!DOCTYPE html>` 开头**，以 `<!--EOF-->` 结尾，中间是完整 HTML，不夹杂任何自然语言。
-- 当任务是「输出结构大纲」时：按当轮 User Prompt 指定的 JSON 结构输出，不输出任何 HTML。
+{
+  "type": "object",
+  "properties": {
+    "theme": {
+      "type": "object",
+      "description": "整站统一的视觉主题，所有 section 共用",
+      "properties": {
+        "brand_name": { "type": "string", "description": "网站/品牌名称，贴合用户主题" },
+        "tagline": { "type": "string", "description": "一句话品牌标语" },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "primary": { "type": "string", "description": "主色 hex，如 #2563eb" },
+            "secondary": { "type": "string", "description": "辅色 hex" },
+            "accent": { "type": "string", "description": "强调色 hex，用于按钮/高亮" },
+            "background": { "type": "string", "description": "页面背景色 hex（浅色为主）" },
+            "text": { "type": "string", "description": "正文文字色 hex" }
+          },
+          "required": ["primary", "secondary", "accent"]
+        },
+        "gradient": { "type": "string", "description": "首屏/CTA 用的渐变 CSS，如 linear-gradient(135deg,#667eea,#764ba2)" },
+        "font_heading": { "type": "string", "description": "标题中文字体建议，如 'Noto Sans SC', sans-serif" },
+        "font_body": { "type": "string", "description": "正文中文字体建议" }
+      },
+      "required": ["brand_name", "colors", "gradient"]
+    },
+    "sections": {
+      "type": "array",
+      "description": "页面区块列表，按 order 从小到大自上而下排列",
+      "items": {
+        "type": "object",
+        "properties": {
+          "order": { "type": "integer", "description": "顺序号，从 1 开始，决定页面排列" },
+          "id": { "type": "string", "description": "区块锚点 id，如 hero / features / pricing" },
+          "type": { "type": "string", "enum": ["hero", "logos", "trust", "features", "showcase", "gallery", "steps", "how_it_works", "testimonials", "pricing", "faq", "cta", "footer", "about", "contact", "stats", "team", "blog"], "description": "区块类型" },
+          "heading": { "type": "string", "description": "该区块主标题（中文）" },
+          "copy": {
+            "type": "object",
+            "description": "该区块的文案要点，内容必须真实、具体、贴合主题，供 Generator 直接采用",
+            "properties": {
+              "subheading": { "type": "string", "description": "副标题/引导语" },
+              "items": {
+                "type": "array",
+                "description": "该区块的内容条目（如特性列表、价格档位、评价、FAQ 等），每条要写具体",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string", "description": "条目标题" },
+                    "description": { "type": "string", "description": "条目描述，真实具体" },
+                    "icon": { "type": "string", "description": "建议的图标名/语义，如 check / star / rocket" },
+                    "extra": { "type": "string", "description": "附加信息，如价格、数值、评分" }
+                  }
+                }
+              },
+              "cta_button": { "type": "string", "description": "该区块的行动按钮文字" },
+              "cta_secondary": { "type": "string", "description": "次要按钮文字（可选）" }
+            }
+          },
+          "visual_intent": { "type": "string", "description": "该区块的视觉布局意图，如 居中大标题+渐变背景+三栏特性卡片" }
+        },
+        "required": ["order", "id", "type", "heading", "copy", "visual_intent"]
+      }
+    }
+  },
+  "required": ["theme", "sections"]
+}

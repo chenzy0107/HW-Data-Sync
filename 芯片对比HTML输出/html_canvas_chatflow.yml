@@ -1,0 +1,399 @@
+app:
+  name: "一句话生成 Canvas HTML"
+  description: "用户一句话 → Query改写 → RAG检索 → 结构化内容+主题 → 渲染单页HTML（媲美Gemini Canvas）"
+  icon: "🎨"
+  icon_type: emoji
+  icon_background: "#EEF2FF"
+  mode: advanced-chat
+  use_icon_as_answer_icon: false
+kind: app
+version: "0.7.0"
+dependencies: []
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+      image: { enabled: false, number_limits: 3, transfer_methods: [local_file, remote_url] }
+      allowed_file_extensions: []
+      allowed_file_types: []
+      allowed_file_upload_methods: [local_file, remote_url]
+      number_limits: 3
+    opening_statement: "说一句话，我来生成一个可交互的单页应用。例如：「帮我做一个咖啡品类知识库页面」"
+    retriever_resource: { enabled: true }
+    sensitive_word_avoidance: { enabled: false }
+    speech_to_text: { enabled: false }
+    suggested_questions:
+      - "帮我做一个东京5日游攻略页面"
+      - "生成一个 Python 入门速查手册"
+      - "做一个新能源汽车横向对比页"
+    suggested_questions_after_answer: { enabled: false }
+    text_to_speech: { enabled: false, language: "", voice: "" }
+  graph:
+    viewport: { x: 0, y: 0, zoom: 0.7 }
+    nodes:
+      # ---------- 开始节点 ----------
+      - id: "1740000000000"
+        type: custom
+        position: { x: 30, y: 240 }
+        positionAbsolute: { x: 30, y: 240 }
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        width: 243
+        height: 89
+        data:
+          title: "开始"
+          type: start
+          variables: []
+          selected: false
+
+      # ---------- Query 改写（指令→检索查询） ----------
+      - id: "1740000000005"
+        type: custom
+        position: { x: 304, y: 240 }
+        positionAbsolute: { x: 304, y: 240 }
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        width: 243
+        height: 110
+        data:
+          title: "Query改写"
+          type: llm
+          desc: "把生成指令翻译成向量检索查询，扩大召回广度"
+          model:
+            provider: langgenius/openai/openai
+            name: gpt-4o-mini
+            mode: chat
+            completion_params:
+              temperature: 0.2
+              max_tokens: 60
+          prompt_template:
+            - id: "sys-rewrite"
+              role: system
+              text: |
+                把用户的"页面生成指令"改写成最适合向量检索的查询。
+                做法：
+                1. 剥离指令性词(帮我/做/生成/页面)，提取核心主题。
+                2. 用 1~2 个名词短语补充子主题，扩大召回广度。
+                3. 只输出检索用的查询文本，不要解释。
+            - id: "usr-rewrite"
+              role: user
+              text: "{{#sys.query#}}"
+          context:
+            enabled: false
+            variable_selector: []
+          memory:
+            query_prompt_template: "{{#sys.query#}}"
+            role_prefix: { assistant: "", user: "" }
+            window: { enabled: false, size: 10 }
+          vision: { enabled: false }
+          selected: false
+
+      # ---------- 知识检索节点（RAG） ----------
+      - id: "1740000000001"
+        type: custom
+        position: { x: 578, y: 240 }
+        positionAbsolute: { x: 578, y: 240 }
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        width: 243
+        height: 110
+        data:
+          title: "知识检索"
+          type: knowledge-retrieval
+          desc: "用改写后的查询检索 RAG 知识库，广度优先"
+          query_variable_selector: ["1740000000005", "text"]
+          dataset_ids: ["<替换为你的知识库ID>"]
+          retrieval_mode: multiple
+          multiple_retrieval_config:
+            top_k: 8
+            score_threshold: 0.3
+            reranking_enable: true
+            reranking_mode: reranking_model
+            reranking_model:
+              provider: langgenius/cohere/cohere
+              model: rerank-multilingual-v3.0
+          metadata_filtering_mode: disabled
+          vision: { enabled: false }
+          selected: false
+
+      # ---------- LLM：内容规划 + 主题设计（结构化输出） ----------
+      - id: "1740000000002"
+        type: custom
+        position: { x: 852, y: 240 }
+        positionAbsolute: { x: 852, y: 240 }
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        width: 243
+        height: 120
+        data:
+          title: "内容与主题生成"
+          type: llm
+          desc: "基于RAG结果，先规划后填充，产出结构化JSON（含主题）"
+          model:
+            provider: langgenius/openai/openai
+            name: gpt-4o-mini
+            mode: chat
+            completion_params:
+              temperature: 0.7
+              max_tokens: 3500
+          prompt_template:
+            - id: "sys-gen"
+              role: system
+              text: |
+                你是资深前端信息架构师。任务：基于用户一句话和参考资料，设计一个高密度、可切换导航的单页信息结构，并自主设计视觉主题（配色/字体/布局）。
+                规则：
+                1. 拆出 4~7 个 section（导航项），覆盖该主题最值得呈现的维度，不要冗余。
+                2. 信息密集、结构化：多用表格、列表、键值卡片(.kv/.card)、对比；禁止大段流水账。
+                3. 每个 section 的 content 用轻量 HTML（可用标签：p ul ol li strong table tr td th code pre blockquote div class=kv|card h3 a）。禁止写 html/head/body/style/script。
+                4. theme 由你自主设计，需有设计感且贴合主题气质（科技/自然/复古/商务…）。layout：信息多选 sidebar，板块少选 tabs。
+                5. 内容必须基于 {#context#}；无依据时以常识简洁补充。
+                6. icon 用单个 emoji。
+                7. 先在脑内确定所有 section 的标题与信息密度，再逐个填充 content，保证各板块详略均衡、不头重脚轻。
+                严格按结构化 schema 输出，禁止任何额外文字。
+            - id: "usr-gen"
+              role: user
+              text: |
+                用户需求：{{#sys.query#}}
+
+                参考资料：
+                {#context#}
+          context:
+            enabled: true
+            variable_selector: ["1740000000001", result]
+          memory:
+            query_prompt_template: "{{#sys.query#}}"
+            role_prefix: { assistant: "", user: "" }
+            window: { enabled: false, size: 10 }
+          reasoning_format: tagged
+          structured_output_enabled: true
+          structured_output:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title: { type: string, description: "页面主标题" }
+                theme:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    layout: { type: string, enum: [sidebar, tabs] }
+                    primary: { type: string, description: "主色 hex" }
+                    secondary: { type: string, description: "辅色 hex" }
+                    accent: { type: string, description: "强调色 hex" }
+                    background: { type: string, description: "背景色 hex" }
+                    surface: { type: string, description: "卡片背景 hex" }
+                    text: { type: string, description: "正文色 hex" }
+                    muted: { type: string, description: "次要文字色 hex" }
+                    font: { type: string, description: "CSS font-family" }
+                  required: [layout, primary, secondary, accent, background, surface, text, muted]
+                sections:
+                  type: array
+                  description: "4~7个板块"
+                  items:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      icon: { type: string }
+                      title: { type: string }
+                      content: { type: string, description: "轻量HTML片段" }
+                    required: [title, content]
+              required: [title, theme, sections]
+          vision: { enabled: false }
+          selected: false
+
+      # ---------- 代码节点：注入模板渲染 HTML ----------
+      - id: "1740000000003"
+        type: custom
+        position: { x: 1126, y: 240 }
+        positionAbsolute: { x: 1126, y: 240 }
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        width: 243
+        height: 110
+        data:
+          title: "渲染HTML"
+          type: code
+          desc: "把结构化数据注入高质量单页模板，输出完整HTML"
+          code_language: python3
+          variables:
+            - variable: data
+              value_selector: ["1740000000002", structured_output]
+          code: |-
+            import json
+            import html as _html
+            def main(data) -> dict:
+                if isinstance(data, str):
+                    data = json.loads(data)
+                title = data.get("title") or "智能生成内容"
+                theme = data.get("theme") or {}
+                sections = data.get("sections") or []
+                P = theme.get("primary", "#5b8def")
+                S = theme.get("secondary", "#22d3ee")
+                A = theme.get("accent", "#f59e0b")
+                BG = theme.get("background", "#0f172a")
+                SF = theme.get("surface", "#1e293b")
+                TX = theme.get("text", "#e2e8f0")
+                MT = theme.get("muted", "#94a3b8")
+                FN = theme.get("font", "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif")
+                layout = (theme.get("layout") or "sidebar").lower()
+                esc = _html.escape
+                nav, panels = [], []
+                for i, s in enumerate(sections):
+                    sid = "sec%d" % i
+                    icon = esc(str(s.get("icon") or "📄"))
+                    stitle = esc(str(s.get("title") or ("板块 %d" % (i + 1))))
+                    body = s.get("content") or ""
+                    active = " active" if i == 0 else ""
+                    nav.append('<div class="nav-item%s" data-target="%s"><span class="ico">%s</span><span>%s</span></div>' % (active, sid, icon, stitle))
+                    panels.append('<section class="panel%s" id="%s"><div class="phead"><span class="hi">%s</span><h2>%s</h2></div><div class="pbody">%s</div></section>' % (active, sid, icon, stitle, body))
+                nav_html = "\n".join(nav)
+                panels_html = "\n".join(panels)
+                esc_title = esc(title)
+                if layout == "tabs":
+                    shell = '<div class="tabbar">%s</div><main class="main">%s</main>' % (nav_html, panels_html)
+                    wrap_cls = "app tabs"
+                else:
+                    shell = '<aside class="sidebar"><div class="brand"><h1>🎨 %s</h1><div class="sub">AI 生成的单页应用</div></div><nav>%s</nav></aside><main class="main">%s</main>' % (esc_title, nav_html, panels_html)
+                    wrap_cls = "app side"
+                doc = """<!DOCTYPE html>
+            <html lang="zh-CN">
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>__T__</title>
+            <style>
+            :root{--primary:__P__;--secondary:__S__;--accent:__A__;--bg:__BG__;--surface:__SF__;--text:__TX__;--muted:__MT__;--font:__FN__;--radius:12px}
+            *{box-sizing:border-box;margin:0;padding:0}
+            html,body{height:100%}
+            body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+            .accent-bar{height:3px;background:linear-gradient(90deg,var(--primary),var(--secondary),var(--accent))}
+            .app{display:flex;height:calc(100vh - 3px);overflow:hidden}
+            .app.tabs{flex-direction:column}
+            .sidebar{width:230px;flex-shrink:0;background:color-mix(in srgb,var(--surface) 65%,transparent);border-right:1px solid color-mix(in srgb,var(--muted) 16%,transparent);display:flex;flex-direction:column;overflow-y:auto}
+            .brand{padding:16px 16px 12px;border-bottom:1px solid color-mix(in srgb,var(--muted) 14%,transparent)}
+            .brand h1{font-size:15px;font-weight:650;display:flex;align-items:center;gap:7px}
+            .brand .sub{font-size:11px;color:var(--muted);margin-top:4px}
+            nav{padding:8px;flex:1}
+            .tabbar{display:flex;gap:2px;padding:8px 12px 0;background:color-mix(in srgb,var(--surface) 50%,transparent);border-bottom:1px solid color-mix(in srgb,var(--muted) 16%,transparent);overflow-x:auto;flex-shrink:0}
+            .nav-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap;border:1px solid transparent;transition:.15s}
+            .nav-item:hover{background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--text)}
+            .nav-item.active{background:color-mix(in srgb,var(--primary) 20%,transparent);color:var(--text);border-color:color-mix(in srgb,var(--primary) 35%,transparent)}
+            .tabbar .nav-item{border-radius:9px 9px 0 0;border-bottom:none}
+            .nav-item .ico{font-size:14px;width:17px;text-align:center}
+            .main{flex:1;overflow-y:auto;padding:22px 30px}
+            .panel{display:none}
+            .panel.active{display:block;animation:fade .22s ease}
+            @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+            .phead{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid color-mix(in srgb,var(--muted) 14%,transparent)}
+            .phead .hi{font-size:22px}
+            .phead h2{font-size:18px;font-weight:650}
+            .pbody :is(p,ul,ol,table,pre,blockquote){margin:0 0 11px}
+            .pbody h3{font-size:13.5px;color:var(--accent);margin:14px 0 6px;font-weight:600}
+            .pbody h4{font-size:13px;margin:11px 0 5px;color:var(--text)}
+            .pbody ul,.pbody ol{padding-left:19px}
+            .pbody li{margin:2px 0}
+            .pbody a{color:var(--secondary);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--secondary) 40%,transparent)}
+            .pbody code{background:color-mix(in srgb,var(--muted) 18%,transparent);padding:1px 5px;border-radius:5px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+            .pbody pre{background:color-mix(in srgb,var(--bg) 70%,#000 25%);padding:11px 13px;border-radius:8px;overflow:auto;border:1px solid color-mix(in srgb,var(--muted) 14%,transparent)}
+            .pbody pre code{background:none;padding:0}
+            .pbody table{width:100%;border-collapse:collapse;font-size:12.5px}
+            .pbody th,.pbody td{border:1px solid color-mix(in srgb,var(--muted) 18%,transparent);padding:6px 9px;text-align:left}
+            .pbody th{background:color-mix(in srgb,var(--primary) 16%,transparent);color:var(--text);font-weight:600}
+            .pbody strong{color:var(--text)}
+            .pbody blockquote{border-left:3px solid var(--accent);padding:4px 12px;color:var(--muted);background:color-mix(in srgb,var(--accent) 8%,transparent);border-radius:0 6px 6px 0}
+            .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+            .card{background:var(--surface);border:1px solid color-mix(in srgb,var(--muted) 14%,transparent);border-radius:var(--radius);padding:13px 14px}
+            .card h3{margin:0 0 5px}
+            @media(max-width:760px){.app.side{flex-direction:column}.sidebar{width:100%;height:auto}.main{padding:15px}}
+            </style>
+            </head>
+            <body>
+            <div class="accent-bar"></div>
+            <div class="__W__">
+            __SHELL__
+            </div>
+            <script>
+            var items=[].slice.call(document.querySelectorAll('.nav-item'));
+            var panels=[].slice.call(document.querySelectorAll('.panel'));
+            function show(id){items.forEach(function(i){i.classList.toggle('active',i.dataset.target===id)});panels.forEach(function(p){p.classList.toggle('active',p.id===id)})}
+            items.forEach(function(i){i.addEventListener('click',function(){show(i.dataset.target)})});
+            </script>
+            </body>
+            </html>"""
+                doc = (doc.replace("__T__", esc_title).replace("__P__", P).replace("__S__", S).replace("__A__", A).replace("__BG__", BG).replace("__SF__", SF).replace("__TX__", TX).replace("__MT__", MT).replace("__FN__", FN).replace("__W__", wrap_cls).replace("__SHELL__", shell))
+                return {"html": doc}
+          outputs:
+            html:
+              type: string
+          selected: false
+
+      # ---------- 答复节点（ChatFlow 终态） ----------
+      - id: "1740000000004"
+        type: custom
+        position: { x: 1400, y: 240 }
+        positionAbsolute: { x: 1400, y: 240 }
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        width: 243
+        height: 89
+        data:
+          title: "直接回复"
+          type: answer
+          answer: "已生成单页 HTML（主题由模型自主设计）。复制下方代码、保存为 `.html`，双击即可在浏览器打开：\n\n```html\n{{#1740000000003.html#}}\n```"
+          variables: []
+          selected: false
+
+    edges:
+      - id: "1740000000000-source-1740000000005-target"
+        source: "1740000000000"
+        sourceHandle: source
+        target: "1740000000005"
+        targetHandle: target
+        type: custom
+        selected: false
+        zIndex: 0
+        data: { isInLoop: false, isInIteration: false, sourceType: start, targetType: llm }
+      - id: "1740000000005-source-1740000000001-target"
+        source: "1740000000005"
+        sourceHandle: source
+        target: "1740000000001"
+        targetHandle: target
+        type: custom
+        selected: false
+        zIndex: 0
+        data: { isInLoop: false, isInIteration: false, sourceType: llm, targetType: knowledge-retrieval }
+      - id: "1740000000001-source-1740000000002-target"
+        source: "1740000000001"
+        sourceHandle: source
+        target: "1740000000002"
+        targetHandle: target
+        type: custom
+        selected: false
+        zIndex: 0
+        data: { isInLoop: false, isInIteration: false, sourceType: knowledge-retrieval, targetType: llm }
+      - id: "1740000000002-source-1740000000003-target"
+        source: "1740000000002"
+        sourceHandle: source
+        target: "1740000000003"
+        targetHandle: target
+        type: custom
+        selected: false
+        zIndex: 0
+        data: { isInLoop: false, isInIteration: false, sourceType: llm, targetType: code }
+      - id: "1740000000003-source-1740000000004-target"
+        source: "1740000000003"
+        sourceHandle: source
+        target: "1740000000004"
+        targetHandle: target
+        type: custom
+        selected: false
+        zIndex: 0
+        data: { isInLoop: false, isInIteration: false, sourceType: code, targetType: answer }

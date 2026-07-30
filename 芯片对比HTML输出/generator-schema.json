@@ -1,0 +1,70 @@
+{
+  "type": "object",
+  "properties": {
+    "theme": {
+      "type": "object",
+      "description": "整站视觉主题，配色算法派生每次不同",
+      "properties": {
+        "brand_name": { "type": "string", "description": "品牌名(取自Context或按主题起)" },
+        "base_hue": { "type": "integer", "description": "基准色相0-359随机", "minimum": 0, "maximum": 359 },
+        "color_strategy": { "type": "string", "enum": ["analogous", "triadic", "complementary", "split_complementary", "tetradic", "monochrome"], "description": "派生策略随机选" },
+        "colors": {
+          "type": "object",
+          "description": "基于base_hue+color_strategy用HSL派生",
+          "properties": {
+            "primary": { "type": "string" },
+            "secondary": { "type": "string" },
+            "accent": { "type": "string" },
+            "background": { "type": "string" },
+            "text": { "type": "string" }
+          },
+          "required": ["primary", "accent", "background", "text"]
+        },
+        "gradient": { "type": "string", "description": "primary→accent派生渐变" }
+      },
+      "required": ["brand_name", "base_hue", "color_strategy", "colors", "gradient"]
+    },
+    "sections": {
+      "type": "array",
+      "description": "3-4个区块，紧凑高密度布局",
+      "items": {
+        "type": "object",
+        "properties": {
+          "layout_role": { "type": "string", "enum": ["topbar", "grid", "full", "collapsible"], "description": "布局角色" },
+          "type": { "type": "string", "enum": ["hero", "checkbox_selector", "recommender", "comparison_table", "stepper_wizard", "configurator", "calculator", "tabs", "interactive_faq", "filterable_list", "before_after", "quiz", "pricing", "cta", "footer"], "description": "区块类型，至少3个强交互(checkbox_selector/recommender/comparison_table/stepper_wizard/configurator/calculator)" },
+          "heading": { "type": "string", "description": "主标题" },
+          "copy": {
+            "type": "object",
+            "minProperties": 1,
+            "description": "文案要点，事实取自Context",
+            "properties": {
+              "subheading": { "type": "string" },
+              "items": {
+                "type": "array",
+                "description": "内容条目，交互项带可交互属性",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string" },
+                    "description": { "type": "string" },
+                    "category": { "type": "string", "description": "分类(筛选/分组用)" },
+                    "selected_default": { "type": "boolean", "description": "checkbox_selector用:是否默认勾选" },
+                    "impact": { "type": "string", "description": "checkbox_selector/recommender用:勾选影响" },
+                    "recommend_condition": { "type": "string", "description": "recommender用:推荐触发条件" },
+                    "score_axes": { "type": "object", "description": "comparison_table用:各维度评分如{价格:8,性能:7}", "properties": {} }
+                  }
+                }
+              },
+              "recommend_rules": { "type": "string", "description": "recommender用:推荐逻辑说明" },
+              "compare_axes": { "type": "array", "description": "comparison_table用:对比维度", "items": { "type": "string" } },
+              "cta_button": { "type": "string" }
+            }
+          },
+          "interaction": { "type": "string", "description": "交互行为+与哪个区块联动，纯展示填'无'" }
+        },
+        "required": ["layout_role", "type", "heading", "copy", "interaction"]
+      }
+    }
+  },
+  "required": ["theme", "sections"]
+}

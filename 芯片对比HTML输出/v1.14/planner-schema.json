@@ -7,7 +7,7 @@
       "description": "整站视觉主题",
       "properties": {
         "brand_name": { "type": "string", "description": "优先取自Context；无明确品牌名时用中性页面标题/工具名，不编造公司全称" },
-        "vibe": { "type": "string", "description": "一句话设计风格/气质，每次尽量不同" },
+        "vibe": { "type": "string", "description": "一句话设计风格/气质，每次显著不同（对应硬约束G，不套模板）" },
         "colors": {
           "type": "object",
           "description": "配色色值，不要总蓝紫",
@@ -17,11 +17,12 @@
             "accent": { "type": "string" },
             "background": { "type": "string" },
             "text": { "type": "string" }
-          }
+          },
+          "required": ["primary", "secondary", "accent", "background", "text"]
         },
         "gradient": { "type": "string", "description": "渐变(可选)" }
       },
-      "required": ["brand_name", "vibe"]
+      "required": ["brand_name", "vibe", "colors"]
     },
     "sections": {
       "type": "array",
@@ -54,7 +55,8 @@
                     "recommend_condition": { "type": "string" },
                     "score_axes": { "type": "object", "additionalProperties": { "type": "number" } },
                     "data_source": { "type": "string", "description": "'context'(取自检索) 或 'pending'(待定)，禁止编造值冒充context", "enum": ["context", "pending"] }
-                  }
+                  },
+                  "required": ["title"]
                 }
               },
               "recommend_rules": { "type": "string" },

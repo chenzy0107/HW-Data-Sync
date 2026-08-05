@@ -1,0 +1,88 @@
+{
+  "type": "object",
+  "description": "单页交互工具结构大纲。硬约束：数据真实不编造。软目标：密集饱满、可交互、视觉惊艳",
+  "properties": {
+    "theme": {
+      "type": "object",
+      "description": "整站视觉主题",
+      "properties": {
+        "brand_name": { "type": "string", "description": "优先取自Context；无明确品牌名时用中性页面标题/工具名，不编造公司全称" },
+        "vibe": { "type": "string", "description": "设计风格/气质，由模型据主题/对比实体自主判断，每次显著不同、不挑安全套路、不总用蓝紫（对应硬约束G）" },
+        "colors": {
+          "type": "object",
+          "description": "配色色值，必须与所选 vibe 匹配，禁默认蓝紫，倾向高饱和强调色/深色或渐变底（风格要求见 SYSTEM-G）",
+          "properties": {
+            "primary": { "type": "string" },
+            "secondary": { "type": "string" },
+            "accent": { "type": "string" },
+            "background": { "type": "string" },
+            "text": { "type": "string" }
+          },
+          "required": ["primary", "secondary", "accent", "background", "text"]
+        },
+        "gradient": { "type": "string", "description": "渐变(可选)" }
+      },
+      "required": ["brand_name", "vibe", "colors"]
+    },
+    "sections": {
+      "type": "array",
+      "description": "区块(至少3个)，布局自主决定；区块与条目数以Context真实容量为上限，密度不够用交互工具补，禁止留白",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "properties": {
+          "layout": { "type": "string", "description": "布局位置/角色" },
+          "purpose": { "type": "string", "description": "区块作用/类型" },
+          "heading": { "type": "string", "description": "主标题" },
+          "content_packing": { "type": "string", "description": "本区块如何填满版面：真实数据有哪些 + 用什么交互工具/多栏结构补足，避免留白" },
+          "copy": {
+            "type": "object",
+            "minProperties": 1,
+            "description": "文案要点，事实取自Context，缺项标'待定/以官方为准'",
+            "properties": {
+              "subheading": { "type": "string" },
+              "items": {
+                "type": "array",
+                "description": "内容条目，每条须有Context依据",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string" },
+                    "description": { "type": "string" },
+                    "category": { "type": "string", "description": "分类(筛选/分组用)" },
+                    "selected_default": { "type": "boolean" },
+                    "impact": { "type": "string" },
+                    "recommend_condition": { "type": "string" },
+                    "score_axes": { "type": "object", "additionalProperties": { "type": "number" } },
+                    "data_source": { "type": "string", "description": "'context'(取自检索) 或 'pending'(待定)，禁止编造值冒充context", "enum": ["context", "pending"] }
+                  },
+                  "required": ["title"]
+                }
+              },
+              "recommend_rules": { "type": "string" },
+              "compare_axes": { "type": "array", "items": { "type": "string" } },
+              "cta_button": { "type": "string" }
+            }
+          },
+          "interaction": { "type": "string", "description": "交互行为+与哪个区块联动，纯展示填'无'" }
+        },
+        "required": ["layout", "purpose", "heading", "copy", "interaction"]
+      }
+    },
+    "filler_widgets": {
+      "type": "array",
+      "description": "补密度的交互工具清单(可选)：真实数据不足以填满版面时规划，用交互工具(非编造数据)填满。每个工具须有真实有用的功能(对齐硬约束C)，非纯装饰填位",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "purpose": { "type": "string" },
+          "placement": { "type": "string" },
+          "interaction_with": { "type": "string" }
+        },
+        "required": ["type", "purpose", "placement"]
+      }
+    }
+  },
+  "required": ["theme", "sections"]
+}
